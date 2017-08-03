@@ -172,6 +172,17 @@ mod tests {
     }
 
     #[test]
+    fn byte_bufs() {
+        // maybe: add support for 0x, 0o, 0b
+        let bytes: Vec<u8> = from_str("0 1 2 255").unwrap();
+        assert_eq!(bytes[0], 0x00);
+        assert_eq!(bytes.len(), 4);
+
+        let borrowed: Result<&[u8], _> = from_str("0 1 2 255");
+        assert!(borrowed.is_err());
+    }
+
+    #[test]
     fn unsupported() {
         #[derive(Deserialize, Debug, PartialEq)]
         #[serde(rename_all = "snake_case")]
