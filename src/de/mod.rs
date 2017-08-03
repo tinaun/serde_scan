@@ -41,7 +41,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         where V: Visitor<'de>
     {
         // obviously, this format is not self-describing
-        Err(ScanError::De)
+        Err(ScanError::NS("self describing formats"))
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -225,7 +225,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         where V: Visitor<'de>
     {
         // like any, not possible
-        Err(ScanError::De)
+        Err(ScanError::NS("self describing formats"))
     }
 
 }
@@ -346,13 +346,13 @@ impl<'de, 'a> VariantAccess<'de> for Sequence<'de, 'a> {
     fn newtype_variant_seed<T>(self, _seed: T) -> Result<T::Value, Self::Error>
         where T: de::DeserializeSeed<'de>
     {
-        Err(ScanError::De)
+        Err(ScanError::NS("newtype enum variants"))
     }
 
     fn tuple_variant<V>(self, _len: usize, _visitor: V) -> Result<V::Value, Self::Error>
         where V: Visitor<'de>
     {
-        Err(ScanError::De)
+        Err(ScanError::NS("tuple enum variants"))
     }
 
     fn struct_variant<V>(
@@ -362,6 +362,6 @@ impl<'de, 'a> VariantAccess<'de> for Sequence<'de, 'a> {
     ) -> Result<V::Value, Self::Error>
         where V: Visitor<'de>
     {
-        Err(ScanError::De)
+        Err(ScanError::NS("struct enum variants"))
     }
 }

@@ -20,6 +20,7 @@ mod errors {
         Io( io::Error ),
         De,
         EOF,
+        NS(&'static str)
     }
 
     impl From<io::Error> for ScanError {
@@ -34,6 +35,7 @@ mod errors {
                 ScanError::Io(ref e) => write!(f, "io: {}", e),
                 ScanError::De => write!(f, "deserialization error"),
                 ScanError::EOF => write!(f, "unexpected end of input"),
+                ScanError::NS(val) => write!(f, "deseralizing `{}` is not supported at this time."),
             }
         }
     }
@@ -44,6 +46,7 @@ mod errors {
                 ScanError::Io(ref e) => e.description(),
                 ScanError::De => "deserialization error",
                 ScanError::EOF => "unexpected end of input",
+                ScanError::NS(_) => "unsupported format",
             }
         }
     }
