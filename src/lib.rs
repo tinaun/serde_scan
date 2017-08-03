@@ -35,7 +35,7 @@ mod errors {
                 ScanError::Io(ref e) => write!(f, "io: {}", e),
                 ScanError::De => write!(f, "deserialization error"),
                 ScanError::EOF => write!(f, "unexpected end of input"),
-                ScanError::NS(val) => write!(f, "deseralizing `{}` is not supported at this time."),
+                ScanError::NS(val) => write!(f, "deseralizing `{}` is not supported at this time.", val),
             }
         }
     }
@@ -168,6 +168,40 @@ mod tests {
 
         assert_eq!(colors.len(), 6);
         assert_eq!(colors[3], Color::Green);
+
+    }
+
+    #[test]
+    fn unsupported() {
+        #[derive(Deserialize, Debug, PartialEq)]
+        #[serde(rename_all = "snake_case")]
+        enum Bad {
+            Bad(i32),
+            ReallyBad(String, String),
+            EvenWorse {
+                a: f64,
+                b: f64,
+            },
+        }
+
+        // this might work in the future
+        let a: Result<Bad, _> = from_str("bad 1");
+        let b: Result<Bad, _> = from_str("really_bad two three");
+        let c: Result<Bad, _> = from_str("even_worse 0.4 0.5");
+
+        assert!(a.is_err());
+        assert!(b.is_err());
+        assert!(c.is_err());
+
+        #[derive(Deserialize, Debug, PartialEq)]
+        struct VecWithStuff {
+            vec: Vec<u32>,
+            stuff: String,
+        }
+
+        // this will work in the future
+        let d: Result<VecWithStuff, _> = from_str("1 2 3 4 6 Stuff");
+        assert!(d.is_err())
 
     }
 }
