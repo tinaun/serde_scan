@@ -128,16 +128,18 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         self.deserialize_str(visitor)
     }
     
-    fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
         where V: Visitor<'de>
     {
-        Err(ScanError::De)
+        // borrowed bytestrings not supported
+        self.deserialize_byte_buf(visitor)
     }
     
     fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
         where V: Visitor<'de>
     {
-        Err(ScanError::De)
+        // treat Vec<u8> like a regular vec
+        self.deserialize_seq(visitor)
     }
     
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Self::Error>
