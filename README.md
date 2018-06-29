@@ -26,6 +26,14 @@ future features:
         c: u32,
     }
 
+    #[derive(Deserialize, Debug, PartialEq)]
+    enum Command {
+        Q,
+        Help,
+        Size(usize, usize),
+        Color(u8),
+    }
+
     fn main() {
         let s = "1 2 3";
 
@@ -37,5 +45,9 @@ future features:
 
         let c: Triple = serde_scan::from_str(s).unwrap();
         assert_eq!(c, Triple { a: 1, b: 2, c: 3 });
+
+        let s = "Size 1 2";
+        let size = serde_scan::from_str(s).unwrap();
+        assert_eq!(c, Command::Size(1, 2));
     }
 ```
