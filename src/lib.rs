@@ -172,6 +172,23 @@ mod tests {
     }
 
     #[test]
+    fn enum_tuple() {
+        #[derive(Deserialize, Debug, PartialEq)]
+        #[serde(rename_all = "snake_case")]
+        enum EnumTuple {
+            Variant(i32),
+            Tuple(String, String, usize),
+        }
+
+        // this might work in the future
+        let a: EnumTuple = from_str("variant 1").unwrap();
+        let b: EnumTuple = from_str("tuple two three 4").unwrap();
+
+        assert_eq!(a, EnumTuple::Variant(1));
+        assert_eq!(b, EnumTuple::Tuple("two".to_string(), "three".to_string(), 4));
+    }
+
+    #[test]
     fn byte_bufs() {
         // maybe: add support for 0x, 0o, 0b
         let bytes: Vec<u8> = from_str("0 1 2 255").unwrap();
@@ -187,21 +204,15 @@ mod tests {
         #[derive(Deserialize, Debug, PartialEq)]
         #[serde(rename_all = "snake_case")]
         enum Bad {
-            Bad(i32),
-            ReallyBad(String, String),
-            EvenWorse {
+            StructVariant {
                 a: f64,
                 b: f64,
             },
         }
 
         // this might work in the future
-        let a: Result<Bad, _> = from_str("bad 1");
-        let b: Result<Bad, _> = from_str("really_bad two three");
-        let c: Result<Bad, _> = from_str("even_worse 0.4 0.5");
+        let c: Result<Bad, _> = from_str("struct_variant 0.4 0.5");
 
-        assert!(a.is_err());
-        assert!(b.is_err());
         assert!(c.is_err());
 
         #[derive(Deserialize, Debug, PartialEq)]

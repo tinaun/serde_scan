@@ -345,16 +345,16 @@ impl<'de, 'a> VariantAccess<'de> for Sequence<'de, 'a> {
     }
 
 
-    fn newtype_variant_seed<T>(self, _seed: T) -> Result<T::Value, Self::Error>
+    fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
         where T: de::DeserializeSeed<'de>
     {
-        Err(ScanError::NS("newtype enum variants"))
+        seed.deserialize(&mut *self.de)
     }
 
-    fn tuple_variant<V>(self, _len: usize, _visitor: V) -> Result<V::Value, Self::Error>
+    fn tuple_variant<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
         where V: Visitor<'de>
     {
-        Err(ScanError::NS("tuple enum variants"))
+        de::Deserializer::deserialize_seq(self.de, visitor)
     }
 
     fn struct_variant<V>(
