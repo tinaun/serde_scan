@@ -3,7 +3,7 @@
 easily deserialize whitespace seperated data into any rust data structure supported by serde. useful for demos, programming contests, and the like.
 
 current issues:
- * no support for enums beyond basic c-style ones
+ * no support for enums with struct variants
  * structs or tuples cannot contain an unbounded container, like a `Vec` or `HashMap`.
 
 future features:

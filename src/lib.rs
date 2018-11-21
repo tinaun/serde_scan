@@ -1,3 +1,56 @@
+//! Easily deserialize whitespace seperated data into any rust data structure supported by serde.
+//! Useful for demos, programming contests, and the like.
+//! 
+//! current issues:
+//!  * no support for enums with struct variants
+//!  * structs or tuples cannot contain an unbounded container, like a `Vec` or `HashMap`.
+//!
+//! future features:
+//!  * defining custom whitespace characters
+//!  * `scanf` style formatting for more complex inputs
+//!
+//! ## Example
+//!
+//! ```rust
+//! extern crate serde;
+//! extern crate serde_scan;
+//! 
+//! #[macro_use]
+//! extern crate serde_derive;
+//! 
+//! #[derive(Deserialize, Debug, PartialEq)]
+//! struct Triple {
+//!     a: u32,
+//!     b: u32,
+//!     c: u32,
+//! }
+//! 
+//! #[derive(Deserialize, Debug, PartialEq)]
+//! enum Command {
+//!     Q,
+//!     Help,
+//!     Size(usize, usize),
+//!     Color(u8),
+//! }
+//! 
+//! fn main() {
+//!     let s = "1 2 3";
+//! 
+//!     let a: [u32; 3] = serde_scan::from_str(s).unwrap();
+//!     assert_eq!(a, [1, 2, 3]);
+//! 
+//!     let b: (u32, u32, u32) = serde_scan::from_str(s).unwrap();
+//!     assert_eq!(b, (1, 2, 3));
+//! 
+//!     let c: Triple = serde_scan::from_str(s).unwrap();
+//!     assert_eq!(c, Triple { a: 1, b: 2, c: 3 });
+//! 
+//!     let s = "Size 1 2";
+//!     let size: Command = serde_scan::from_str(s).unwrap();
+//!     assert_eq!(size, Command::Size(1, 2));
+//! }
+//! ```
+
 extern crate serde;
 
 #[cfg(test)]
@@ -63,8 +116,10 @@ use errors::*;
 use serde::de::{Deserialize, DeserializeOwned};
 
 
-/// get a line of input from stdin, and parse it. 
-/// extra data not needed for parsing `T` is thrown out
+/// Get a line of input from stdin, and parse it. 
+/// 
+/// Extra data not needed for parsing `T` is thrown out.
+/// 
 pub fn next_line<T: DeserializeOwned>() -> Result<T, ScanError> {
     use std::io;
     
@@ -76,6 +131,7 @@ pub fn next_line<T: DeserializeOwned>() -> Result<T, ScanError> {
     from_str(&buf)
 }
 
+/// Parse a string contaning whitespace seperated data.
 /// 
 pub fn from_str<'a, T: Deserialize<'a>>(s: &'a str) -> Result<T, ScanError> {
     let mut de = de::Deserializer::from_str(s);
