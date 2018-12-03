@@ -1,18 +1,41 @@
-use std::iter::Peekable;
-use std::str::{SplitWhitespace, FromStr};
+use std::iter::{Filter, Peekable};
+use std::str::{Split, FromStr};
 use errors::*;
 
 use serde::de::{self, Visitor, SeqAccess, MapAccess, EnumAccess, VariantAccess};
 
-pub struct Deserializer<'de> {
-    // TODO: custom iterator support
-    iter: Peekable<SplitWhitespace<'de>>
+pub struct Deserializer<'de, F> 
+    where F: FnMut(char) -> bool,
+{
+    iter: Peekable<Filter<Split<'de, F>, fn(&&str) -> bool>>
 }
 
-impl<'de> Deserializer<'de> {
-    pub fn from_str(s: &'de str) -> Self {
+impl<'de, F> Deserializer<'de, F> 
+    where F: FnMut(char) -> bool,
+{
+    pub fn from_str(s: &'de str) -> Deserializer<impl FnMut(char) -> bool> {
+        fn is_not_empty(s: &&str) -> bool {
+            !s.is_empty()
+        }
+        let is_not_empty = is_not_empty as fn(&&str) -> bool;
+
+        fn is_whitespace(c: char) -> bool {
+            c.is_whitespace()
+        }
+        
         Deserializer {
-            iter: s.split_whitespace().peekable()
+            iter: s.split(is_whitespace).filter(is_not_empty).peekable()
+        }
+    }
+
+    pub fn from_closure(f: F, s: &'de str) -> Self {
+        fn is_not_empty(s: &&str) -> bool {
+            !s.is_empty()
+        }
+        let is_not_empty = is_not_empty as fn(&&str) -> bool;
+
+        Deserializer {
+            iter: s.split(f).filter(is_not_empty).peekable()
         }
     }
 
@@ -34,7 +57,9 @@ impl<'de> Deserializer<'de> {
     }
 }
 
-impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
+impl<'de, 'a, F> de::Deserializer<'de> for &'a mut Deserializer<'de, F> 
+    where F: FnMut(char) -> bool,
+{
     type Error = ScanError;
 
     fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
@@ -232,15 +257,20 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 
 }
 
-struct Sequence<'de, 'a> where 'de : 'a {
-    de: &'a mut Deserializer<'de>,
+struct Sequence<'de, 'a, F> 
+    where 'de : 'a,
+          F: FnMut(char) -> bool,
+{
+    de: &'a mut Deserializer<'de, F>,
     count: usize,
     names: Option<&'a [&'static str]>,
     limit: Option<usize>,
 }
 
-impl<'de, 'a> Sequence<'de, 'a> {
-    fn new(de: &'a mut Deserializer<'de>) -> Self {
+impl<'de, 'a, F> Sequence<'de, 'a, F> 
+    where F: FnMut(char) -> bool,
+{
+    fn new(de: &'a mut Deserializer<'de, F>) -> Self {
         Sequence {
             de,
             count: 0,
@@ -262,7 +292,9 @@ impl<'de, 'a> Sequence<'de, 'a> {
     }
 }
 
-impl<'de, 'a> SeqAccess<'de> for Sequence<'de, 'a> {
+impl<'de, 'a, F> SeqAccess<'de> for Sequence<'de, 'a, F> 
+    where F: FnMut(char) -> bool,
+{
     type Error = ScanError;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error> 
@@ -286,7 +318,9 @@ impl<'de, 'a> SeqAccess<'de> for Sequence<'de, 'a> {
 
 }
 
-impl<'de, 'a> MapAccess<'de> for Sequence<'de, 'a> {
+impl<'de, 'a, F> MapAccess<'de> for Sequence<'de, 'a, F> 
+    where F: FnMut(char) -> bool,
+{
     type Error = ScanError;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
@@ -321,7 +355,9 @@ impl<'de, 'a> MapAccess<'de> for Sequence<'de, 'a> {
     }
 }
 
-impl<'de, 'a> EnumAccess<'de> for Sequence<'de, 'a> {
+impl<'de, 'a, F> EnumAccess<'de> for Sequence<'de, 'a, F> 
+    where F: FnMut(char) -> bool,
+{
     type Error = ScanError;
     type Variant = Self;
 
@@ -335,7 +371,9 @@ impl<'de, 'a> EnumAccess<'de> for Sequence<'de, 'a> {
 
 }
 
-impl<'de, 'a> VariantAccess<'de> for Sequence<'de, 'a> {
+impl<'de, 'a, F> VariantAccess<'de> for Sequence<'de, 'a, F> 
+    where F: FnMut(char) -> bool,
+{
     type Error = ScanError;
 
     // unit should be caught by EnumAccess,

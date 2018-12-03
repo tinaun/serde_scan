@@ -111,7 +111,7 @@ mod errors {
     }
 }
 
-use errors::*;
+pub use errors::ScanError;
 
 use serde::de::{Deserialize, DeserializeOwned};
 
@@ -134,10 +134,70 @@ pub fn next_line<T: DeserializeOwned>() -> Result<T, ScanError> {
 /// Parse a string contaning whitespace seperated data.
 /// 
 pub fn from_str<'a, T: Deserialize<'a>>(s: &'a str) -> Result<T, ScanError> {
-    let mut de = de::Deserializer::from_str(s);
+    let mut de = de::Deserializer::<fn(char) -> bool>::from_str(s);
 
     T::deserialize(&mut de)
-} 
+}
+
+/// Parse a string contaning data seperated by whitespace or any character in the given skip string.
+/// 
+pub fn from_str_skipping<'a, T: Deserialize<'a>>(set: &'a str, s: &'a str) -> Result<T, ScanError> {
+    from_closure(|ch| ch.is_whitespace() || set.contains(ch), s)
+}
+
+#[doc(hidden)]
+pub fn from_closure<'a, F, T>(f: F, s: &'a str) -> Result<T, ScanError> 
+    where T: Deserialize<'a>,
+          F: FnMut(char) -> bool,
+{
+    let mut de = de::Deserializer::from_closure(f, s);
+
+    T::deserialize(&mut de)
+}
+
+/// The `scan!` macro.
+/// 
+/// Useful for extracting important bits from simple ad-hoc text files.
+/// 
+/// # Example
+/// 
+/// ```rust,no_run
+/// # use serde_scan::scan;
+/// # use serde_scan::ScanError;
+/// 
+/// # fn main() -> Result<(), ScanError> {
+/// let line = "#1 @ 555,891: 18x12";
+/// let parsed = scan!("#{} @ {},{}: {}x{}" <- line)?;
+/// # Ok(()) }
+/// ```
+/// 
+#[macro_export]
+macro_rules! scan {
+    ($scan_string:tt <- $input:ident) => {{
+        let mut chaff = $scan_string.split("{}")
+                                    .map(|s| s.trim())
+                                    .flat_map(|s| s.chars())
+                                    .peekable();
+
+        $crate::from_closure(move |next_ch| {
+            if next_ch.is_whitespace() {
+                true
+            } else if let Some(&ch) = chaff.peek() {
+                if next_ch == ch {
+                    chaff.next();
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        }, $input)
+    }};
+    ($($t:tt)*) => {
+        compile_error!("invalid format.\nusage: scan!(\"scan literal\" <- value)");
+    }
+}
 
 
 #[cfg(test)]
