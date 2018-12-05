@@ -175,8 +175,8 @@ pub fn from_closure<'a, F, T>(f: F, s: &'a str) -> Result<T, ScanError>
 macro_rules! scan {
     ($scan_string:tt <- $input:ident) => {{
         let mut chaff = $scan_string.split("{}")
-                                    .map(|s| s.trim())
                                     .flat_map(|s| s.chars())
+                                    .filter(|c| !c.is_whitespace())
                                     .peekable();
 
         $crate::from_closure(move |next_ch| {
@@ -341,5 +341,14 @@ mod tests {
         let d: Result<VecWithStuff, _> = from_str("1 2 3 4 6 Stuff");
         assert!(d.is_err())
 
+    }
+
+    #[test]
+    fn scan_macro() {
+        let test = "Guard #64 is active.";
+
+        let id: u32 = scan!("Guard #{} is active." <- test).unwrap_or(0);
+
+        assert_eq!(id, 64);
     }
 }
