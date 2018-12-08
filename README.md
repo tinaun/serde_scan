@@ -6,10 +6,6 @@ current issues:
  * no support for enums with struct variants
  * structs or tuples cannot contain an unbounded container, like a `Vec` or `HashMap`.
 
-future features:
- * defining custom whitespace characters
- * `scanf` style formatting for more complex inputs
-
 ## examples
 
 ```rust

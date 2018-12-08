@@ -351,4 +351,40 @@ mod tests {
 
         assert_eq!(id, 64);
     }
+
+    #[test]
+    fn parse_asm() {
+        #[derive(Debug, Deserialize, PartialEq)]
+        #[serde(untagged)] 
+        enum Value {
+            Lit(u8),
+            Reg(char),
+        }
+
+        #[derive(Debug, Deserialize, PartialEq)]
+        #[serde(rename_all = "snake_case")] 
+        enum Instr {
+            Add(Value, Value),
+            Sub(Value, Value),
+            Load(Value, Value),
+        }
+
+        let input = "
+            load a 80
+            load b 60
+            add a b
+            sub a 10
+        ";
+
+        let expected = vec![
+            Instr::Load(Value::Reg('a'), Value::Lit(80)),
+            Instr::Load(Value::Reg('b'), Value::Lit(60)), 
+            Instr::Add(Value::Reg('a'), Value::Reg('b')), 
+            Instr::Sub(Value::Reg('a'), Value::Lit(10))
+        ];
+
+        let program: Vec<Instr> = input.trim().lines().filter_map(|l| from_str(l).ok()).collect();
+
+        assert_eq!(program, expected)
+    }
 }

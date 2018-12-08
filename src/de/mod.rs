@@ -57,16 +57,49 @@ impl<'de, F> Deserializer<'de, F>
     }
 }
 
+enum NextValue {
+    Unsigned,
+    Integer,
+    Float,
+    Char,
+    String,
+}
+
+impl NextValue {
+    fn new(next: &str) -> Self {
+        if next.parse::<u64>().is_ok() {
+            NextValue::Unsigned
+        } else if next.parse::<i64>().is_ok() {
+            NextValue::Integer
+        } else if next.parse::<f64>().is_ok() {
+            NextValue::Float
+        } else if next.parse::<char>().is_ok() {
+            NextValue::Char
+        }else {
+            NextValue::String
+        }
+    }
+}
+
 impl<'de, 'a, F> de::Deserializer<'de> for &'a mut Deserializer<'de, F> 
     where F: FnMut(char) -> bool,
 {
     type Error = ScanError;
 
-    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
         where V: Visitor<'de>
     {
-        // obviously, this format is not self-describing
-        Err(ScanError::NS("self describing formats"))
+        if let Some(next) = self.peek().map(|s| NextValue::new(*s)) {
+            match next {
+                NextValue::Float => self.deserialize_f64(visitor),
+                NextValue::Integer => self.deserialize_i64(visitor),
+                NextValue::Unsigned => self.deserialize_u64(visitor),
+                NextValue::Char => self.deserialize_char(visitor),
+                _ => self.deserialize_str(visitor),
+            }
+        } else {
+            Err(ScanError::EOF)
+        }
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Self::Error>

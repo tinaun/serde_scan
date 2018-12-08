@@ -1,3 +1,6 @@
+# Version 0.3.2
+ * added support for the `#[serde(untagged)]` attribute on "parse-tree" style enums 
+
 # Version 0.3
  * added basic `scan!` macro for working with custom formats
  * new function - `from_str_skip` - allows skipping custom characters, not just whitespace
