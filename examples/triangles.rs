@@ -4,19 +4,16 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_scan;
 
-
 #[derive(Debug, Deserialize)]
 struct Triangle {
     a: u64,
     b: u64,
-    c: u64,   
+    c: u64,
 }
 
 impl Triangle {
     fn is_valid(&self) -> bool {
-        self.a + self.b > self.c && 
-        self.a + self.c > self.b && 
-        self.b + self.c > self.a
+        self.a + self.b > self.c && self.a + self.c > self.b && self.b + self.c > self.a
     }
 }
 

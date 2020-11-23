@@ -1,17 +1,19 @@
-use std::iter::{Filter, Peekable};
-use std::str::{Split, FromStr};
 use errors::*;
+use std::iter::{Filter, Peekable};
+use std::str::{FromStr, Split};
 
-use serde::de::{self, Visitor, SeqAccess, MapAccess, EnumAccess, VariantAccess};
+use serde::de::{self, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
 
-pub struct Deserializer<'de, F> 
-    where F: FnMut(char) -> bool,
+pub struct Deserializer<'de, F>
+where
+    F: FnMut(char) -> bool,
 {
-    iter: Peekable<Filter<Split<'de, F>, fn(&&str) -> bool>>
+    iter: Peekable<Filter<Split<'de, F>, fn(&&str) -> bool>>,
 }
 
-impl<'de, F> Deserializer<'de, F> 
-    where F: FnMut(char) -> bool,
+impl<'de, F> Deserializer<'de, F>
+where
+    F: FnMut(char) -> bool,
 {
     pub fn from_str(s: &'de str) -> Deserializer<impl FnMut(char) -> bool> {
         fn is_not_empty(s: &&str) -> bool {
@@ -22,9 +24,9 @@ impl<'de, F> Deserializer<'de, F>
         fn is_whitespace(c: char) -> bool {
             c.is_whitespace()
         }
-        
+
         Deserializer {
-            iter: s.split(is_whitespace).filter(is_not_empty).peekable()
+            iter: s.split(is_whitespace).filter(is_not_empty).peekable(),
         }
     }
 
@@ -35,16 +37,14 @@ impl<'de, F> Deserializer<'de, F>
         let is_not_empty = is_not_empty as fn(&&str) -> bool;
 
         Deserializer {
-            iter: s.split(f).filter(is_not_empty).peekable()
+            iter: s.split(f).filter(is_not_empty).peekable(),
         }
     }
 
     fn parse_next<T: FromStr>(&mut self) -> Result<T, ScanError> {
         match self.iter.next() {
-            Some(s) => {
-                s.parse().map_err(|_| ScanError::De)
-            },
-            None => Err(ScanError::EOF)
+            Some(s) => s.parse().map_err(|_| ScanError::De),
+            None => Err(ScanError::EOF),
         }
     }
 
@@ -75,19 +75,21 @@ impl NextValue {
             NextValue::Float
         } else if next.parse::<char>().is_ok() {
             NextValue::Char
-        }else {
+        } else {
             NextValue::String
         }
     }
 }
 
-impl<'de, 'a, F> de::Deserializer<'de> for &'a mut Deserializer<'de, F> 
-    where F: FnMut(char) -> bool,
+impl<'de, 'a, F> de::Deserializer<'de> for &'a mut Deserializer<'de, F>
+where
+    F: FnMut(char) -> bool,
 {
     type Error = ScanError;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         if let Some(next) = self.peek().map(|s| NextValue::new(*s)) {
             match next {
@@ -103,196 +105,237 @@ impl<'de, 'a, F> de::Deserializer<'de> for &'a mut Deserializer<'de, F>
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_bool(self.parse_next()?)
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_i8(self.parse_next()?)
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_i16(self.parse_next()?)
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_i32(self.parse_next()?)
     }
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_i64(self.parse_next()?)
     }
-    
+
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_u8(self.parse_next()?)
     }
-    
+
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_u16(self.parse_next()?)
     }
-    
+
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_u32(self.parse_next()?)
     }
-    
+
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_u64(self.parse_next()?)
     }
-    
+
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_f64(self.parse_next()?)
     }
-    
+
     fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_f64(self.parse_next()?)
     }
-    
+
     fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_char(self.parse_next()?)
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_borrowed_str(self.next()?)
     }
-    
+
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.deserialize_str(visitor)
     }
-    
+
     fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         // borrowed bytestrings not supported
         self.deserialize_byte_buf(visitor)
     }
-    
+
     fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         // treat Vec<u8> like a regular vec
         self.deserialize_seq(visitor)
     }
-    
+
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         // TODO: better option parsing
         if self.peek().is_none() {
             visitor.visit_none()
         } else {
             visitor.visit_some(self)
-        } 
+        }
     }
-    
+
     fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
-    {
-        visitor.visit_unit()
-    }
-    
-    fn deserialize_unit_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_unit()
     }
 
-    fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    fn deserialize_unit_struct<V>(
+        self,
+        _name: &'static str,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_unit()
+    }
+
+    fn deserialize_newtype_struct<V>(
+        self,
+        _name: &'static str,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_newtype_struct(self)
     }
-    
+
     fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_seq(Sequence::new(&mut *self))
     }
-    
+
     fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_seq(Sequence::new(&mut *self).with_limit(len))
     }
-    
-    fn deserialize_tuple_struct<V>(self, _name: &'static str, len: usize, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+
+    fn deserialize_tuple_struct<V>(
+        self,
+        _name: &'static str,
+        len: usize,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
     {
         self.deserialize_tuple(len, visitor)
     }
-    
+
     fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_map(Sequence::new(&mut *self))
     }
-    
+
     fn deserialize_struct<V>(
-        self, 
-        _name: &'static str, 
-        variants: &'static [&'static str], 
-        visitor: V
+        self,
+        _name: &'static str,
+        variants: &'static [&'static str],
+        visitor: V,
     ) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_map(Sequence::new(&mut *self).with_names(variants))
     }
-    
+
     fn deserialize_enum<V>(
-        self, 
-        _name: &'static str, 
+        self,
+        _name: &'static str,
         _variants: &'static [&'static str],
-        visitor: V
+        visitor: V,
     ) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         visitor.visit_enum(Sequence::new(&mut *self))
     }
 
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         self.deserialize_str(visitor)
     }
-    
+
     fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         // like any, not possible
         Err(ScanError::NS("self describing formats"))
     }
-
 }
 
-struct Sequence<'de, 'a, F> 
-    where 'de : 'a,
-          F: FnMut(char) -> bool,
+struct Sequence<'de, 'a, F>
+where
+    'de: 'a,
+    F: FnMut(char) -> bool,
 {
     de: &'a mut Deserializer<'de, F>,
     count: usize,
@@ -300,8 +343,9 @@ struct Sequence<'de, 'a, F>
     limit: Option<usize>,
 }
 
-impl<'de, 'a, F> Sequence<'de, 'a, F> 
-    where F: FnMut(char) -> bool,
+impl<'de, 'a, F> Sequence<'de, 'a, F>
+where
+    F: FnMut(char) -> bool,
 {
     fn new(de: &'a mut Deserializer<'de, F>) -> Self {
         Sequence {
@@ -325,22 +369,24 @@ impl<'de, 'a, F> Sequence<'de, 'a, F>
     }
 }
 
-impl<'de, 'a, F> SeqAccess<'de> for Sequence<'de, 'a, F> 
-    where F: FnMut(char) -> bool,
+impl<'de, 'a, F> SeqAccess<'de> for Sequence<'de, 'a, F>
+where
+    F: FnMut(char) -> bool,
 {
     type Error = ScanError;
 
-    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error> 
-        where T: de::DeserializeSeed<'de>
+    fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
+    where
+        T: de::DeserializeSeed<'de>,
     {
         if let Some(lim) = self.limit {
             // if we have a limit defined, stop
             if lim == self.count {
                 return Ok(None);
             }
-        } 
-        
-        if let None = self.de.peek(){
+        }
+
+        if let None = self.de.peek() {
             // if we have no more data, stop
             return Ok(None);
         }
@@ -348,16 +394,17 @@ impl<'de, 'a, F> SeqAccess<'de> for Sequence<'de, 'a, F>
         self.count += 1;
         seed.deserialize(&mut *self.de).map(Some)
     }
-
 }
 
-impl<'de, 'a, F> MapAccess<'de> for Sequence<'de, 'a, F> 
-    where F: FnMut(char) -> bool,
+impl<'de, 'a, F> MapAccess<'de> for Sequence<'de, 'a, F>
+where
+    F: FnMut(char) -> bool,
 {
     type Error = ScanError;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
-        where K: de::DeserializeSeed<'de>
+    where
+        K: de::DeserializeSeed<'de>,
     {
         use serde::de::IntoDeserializer;
 
@@ -367,7 +414,9 @@ impl<'de, 'a, F> MapAccess<'de> for Sequence<'de, 'a, F>
                 return Ok(None);
             } else {
                 self.count += 1;
-                return seed.deserialize(names[self.count - 1].into_deserializer()).map(Some);
+                return seed
+                    .deserialize(names[self.count - 1].into_deserializer())
+                    .map(Some);
             }
         }
 
@@ -380,32 +429,32 @@ impl<'de, 'a, F> MapAccess<'de> for Sequence<'de, 'a, F>
     }
 
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
-        where V: de::DeserializeSeed<'de>
+    where
+        V: de::DeserializeSeed<'de>,
     {
-        
         // Deserialize a map value.
         seed.deserialize(&mut *self.de)
     }
 }
 
-impl<'de, 'a, F> EnumAccess<'de> for Sequence<'de, 'a, F> 
-    where F: FnMut(char) -> bool,
+impl<'de, 'a, F> EnumAccess<'de> for Sequence<'de, 'a, F>
+where
+    F: FnMut(char) -> bool,
 {
     type Error = ScanError;
     type Variant = Self;
 
     fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant), Self::Error>
-        where V: de::DeserializeSeed<'de>
+    where
+        V: de::DeserializeSeed<'de>,
     {
-
         seed.deserialize(&mut *self.de).map(|v| (v, self))
     }
-
-
 }
 
-impl<'de, 'a, F> VariantAccess<'de> for Sequence<'de, 'a, F> 
-    where F: FnMut(char) -> bool,
+impl<'de, 'a, F> VariantAccess<'de> for Sequence<'de, 'a, F>
+where
+    F: FnMut(char) -> bool,
 {
     type Error = ScanError;
 
@@ -415,15 +464,16 @@ impl<'de, 'a, F> VariantAccess<'de> for Sequence<'de, 'a, F>
         Ok(())
     }
 
-
     fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
-        where T: de::DeserializeSeed<'de>
+    where
+        T: de::DeserializeSeed<'de>,
     {
         seed.deserialize(&mut *self.de)
     }
 
     fn tuple_variant<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         de::Deserializer::deserialize_seq(self.de, visitor)
     }
@@ -433,7 +483,8 @@ impl<'de, 'a, F> VariantAccess<'de> for Sequence<'de, 'a, F>
         _fields: &'static [&'static str],
         _visitor: V,
     ) -> Result<V::Value, Self::Error>
-        where V: Visitor<'de>
+    where
+        V: Visitor<'de>,
     {
         Err(ScanError::NS("struct enum variants"))
     }

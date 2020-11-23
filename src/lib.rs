@@ -1,6 +1,6 @@
 //! Easily deserialize whitespace seperated data into any rust data structure supported by serde.
 //! Useful for demos, programming contests, and the like.
-//! 
+//!
 //! current issues:
 //!  * no support for enums with struct variants
 //!  * structs or tuples cannot contain an unbounded container, like a `Vec` or `HashMap`.
@@ -14,17 +14,17 @@
 //! ```rust
 //! extern crate serde;
 //! extern crate serde_scan;
-//! 
+//!
 //! #[macro_use]
 //! extern crate serde_derive;
-//! 
+//!
 //! #[derive(Deserialize, Debug, PartialEq)]
 //! struct Triple {
 //!     a: u32,
 //!     b: u32,
 //!     c: u32,
 //! }
-//! 
+//!
 //! #[derive(Deserialize, Debug, PartialEq)]
 //! enum Command {
 //!     Q,
@@ -32,19 +32,19 @@
 //!     Size(usize, usize),
 //!     Color(u8),
 //! }
-//! 
+//!
 //! fn main() {
 //!     let s = "1 2 3";
-//! 
+//!
 //!     let a: [u32; 3] = serde_scan::from_str(s).unwrap();
 //!     assert_eq!(a, [1, 2, 3]);
-//! 
+//!
 //!     let b: (u32, u32, u32) = serde_scan::from_str(s).unwrap();
 //!     assert_eq!(b, (1, 2, 3));
-//! 
+//!
 //!     let c: Triple = serde_scan::from_str(s).unwrap();
 //!     assert_eq!(c, Triple { a: 1, b: 2, c: 3 });
-//! 
+//!
 //!     let s = "Size 1 2";
 //!     let size: Command = serde_scan::from_str(s).unwrap();
 //!     assert_eq!(size, Command::Size(1, 2));
@@ -60,20 +60,19 @@ extern crate serde_derive;
 mod de;
 
 mod errors {
-    use std::io;
+    use serde::de;
     use std::error::Error;
     use std::fmt::{self, Display};
-    use serde::de;
+    use std::io;
 
     // TODO: make this better
 
-
     #[derive(Debug)]
     pub enum ScanError {
-        Io( io::Error ),
+        Io(io::Error),
         De,
         EOF,
-        NS(&'static str)
+        NS(&'static str),
     }
 
     impl From<io::Error> for ScanError {
@@ -88,21 +87,14 @@ mod errors {
                 ScanError::Io(ref e) => write!(f, "io: {}", e),
                 ScanError::De => write!(f, "deserialization error"),
                 ScanError::EOF => write!(f, "unexpected end of input"),
-                ScanError::NS(val) => write!(f, "deseralizing `{}` is not supported at this time.", val),
+                ScanError::NS(val) => {
+                    write!(f, "deseralizing `{}` is not supported at this time.", val)
+                }
             }
         }
     }
 
-    impl Error for ScanError {
-        fn description(&self) -> &str {
-            match *self {
-                ScanError::Io(ref e) => e.description(),
-                ScanError::De => "deserialization error",
-                ScanError::EOF => "unexpected end of input",
-                ScanError::NS(_) => "unsupported format",
-            }
-        }
-    }
+    impl Error for ScanError {}
 
     impl de::Error for ScanError {
         fn custom<T: Display>(_msg: T) -> Self {
@@ -115,14 +107,13 @@ pub use errors::ScanError;
 
 use serde::de::{Deserialize, DeserializeOwned};
 
-
-/// Get a line of input from stdin, and parse it. 
-/// 
+/// Get a line of input from stdin, and parse it.
+///
 /// Extra data not needed for parsing `T` is thrown out.
-/// 
+///
 pub fn next_line<T: DeserializeOwned>() -> Result<T, ScanError> {
     use std::io;
-    
+
     let input = io::stdin();
     let mut buf = String::new();
 
@@ -132,7 +123,7 @@ pub fn next_line<T: DeserializeOwned>() -> Result<T, ScanError> {
 }
 
 /// Parse a string contaning whitespace seperated data.
-/// 
+///
 pub fn from_str<'a, T: Deserialize<'a>>(s: &'a str) -> Result<T, ScanError> {
     let mut de = de::Deserializer::<fn(char) -> bool>::from_str(s);
 
@@ -140,15 +131,16 @@ pub fn from_str<'a, T: Deserialize<'a>>(s: &'a str) -> Result<T, ScanError> {
 }
 
 /// Parse a string contaning data seperated by whitespace or any character in the given skip string.
-/// 
+///
 pub fn from_str_skipping<'a, T: Deserialize<'a>>(set: &'a str, s: &'a str) -> Result<T, ScanError> {
     from_closure(|ch| ch.is_whitespace() || set.contains(ch), s)
 }
 
 #[doc(hidden)]
-pub fn from_closure<'a, F, T>(f: F, s: &'a str) -> Result<T, ScanError> 
-    where T: Deserialize<'a>,
-          F: FnMut(char) -> bool,
+pub fn from_closure<'a, F, T>(f: F, s: &'a str) -> Result<T, ScanError>
+where
+    T: Deserialize<'a>,
+    F: FnMut(char) -> bool,
 {
     let mut de = de::Deserializer::from_closure(f, s);
 
@@ -156,56 +148,56 @@ pub fn from_closure<'a, F, T>(f: F, s: &'a str) -> Result<T, ScanError>
 }
 
 /// The `scan!` macro.
-/// 
+///
 /// Useful for extracting important bits from simple ad-hoc text files.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```rust,no_run
 /// # use serde_scan::scan;
 /// # use serde_scan::ScanError;
-/// 
+///
 /// # fn main() -> Result<(), ScanError> {
 /// let line = "#1 @ 555,891: 18x12";
 /// let parsed = scan!("#{} @ {},{}: {}x{}" <- line)?;
 /// # Ok(()) }
 /// ```
-/// 
+///
 #[macro_export]
 macro_rules! scan {
     ($scan_string:tt <- $input:ident) => {{
-        let mut chaff = $scan_string.split("{}")
-                                    .flat_map(|s| s.chars())
-                                    .filter(|c| !c.is_whitespace())
-                                    .peekable();
+        let mut chaff = $scan_string
+            .split("{}")
+            .flat_map(|s| s.chars())
+            .peekable();
 
-        $crate::from_closure(move |next_ch| {
-            if next_ch.is_whitespace() {
-                true
-            } else if let Some(&ch) = chaff.peek() {
-                if next_ch == ch {
-                    chaff.next();
-                    true
+        $crate::from_closure(
+            move |next_ch| {
+                if let Some(&ch) = chaff.peek() {
+                    println!("cmp: {:?} {:?}", ch, next_ch);
+                    if next_ch == ch {
+                        chaff.next();
+                        true
+                    } else {
+                        false
+                    }
                 } else {
                     false
                 }
-            } else {
-                false
-            }
-        }, $input)
+            },
+            $input,
+        )
     }};
     ($($t:tt)*) => {
         compile_error!("invalid format.\nusage: scan!(\"scan literal\" <- value)");
-    }
+    };
 }
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn numbers() {
-
         let a: u64 = from_str("64").unwrap();
         let b: i64 = from_str("-64").unwrap();
 
@@ -215,7 +207,6 @@ mod tests {
 
     #[test]
     fn tuples() {
-
         let a: (f32,) = from_str("  45.34 ").unwrap();
         let b: (u8, u8) = from_str("   3 4   ").unwrap();
         let c: (u32, String, u32) = from_str(" 413 plus 612 ").unwrap();
@@ -238,14 +229,12 @@ mod tests {
 
     #[test]
     fn three_ways() {
-
         #[derive(Deserialize, Debug, PartialEq)]
         struct Triple {
             a: u32,
             b: u32,
             c: u32,
         }
-
 
         let s = r#" 1 
                 2 
@@ -284,7 +273,6 @@ mod tests {
 
         assert_eq!(colors.len(), 6);
         assert_eq!(colors[3], Color::Green);
-
     }
 
     #[test]
@@ -301,7 +289,10 @@ mod tests {
         let b: EnumTuple = from_str("tuple two three 4").unwrap();
 
         assert_eq!(a, EnumTuple::Variant(1));
-        assert_eq!(b, EnumTuple::Tuple("two".to_string(), "three".to_string(), 4));
+        assert_eq!(
+            b,
+            EnumTuple::Tuple("two".to_string(), "three".to_string(), 4)
+        );
     }
 
     #[test]
@@ -320,10 +311,7 @@ mod tests {
         #[derive(Deserialize, Debug, PartialEq)]
         #[serde(rename_all = "snake_case")]
         enum Bad {
-            StructVariant {
-                a: f64,
-                b: f64,
-            },
+            StructVariant { a: f64, b: f64 },
         }
 
         // this might work in the future
@@ -340,7 +328,6 @@ mod tests {
         // this will work in the future
         let d: Result<VecWithStuff, _> = from_str("1 2 3 4 6 Stuff");
         assert!(d.is_err())
-
     }
 
     #[test]
@@ -353,16 +340,37 @@ mod tests {
     }
 
     #[test]
+    fn scan_macro_enum() {
+        #[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+        #[serde(rename_all = "lowercase")]
+        enum Damage {
+            Fire,
+            Cold,
+        }
+
+        let tests = [
+            ("1 fire damage", 1, Damage::Fire),
+            ("2 cold damage", 2, Damage::Cold),
+        ];
+
+        for &(test, test_n, test_damage) in &tests {
+            let (n, damage): (u32, Damage) = scan!("{} {} damage" <- test).expect(test);
+            assert_eq!(n, test_n);
+            assert_eq!(damage, test_damage);
+        }
+    }
+
+    #[test]
     fn parse_asm() {
         #[derive(Debug, Deserialize, PartialEq)]
-        #[serde(untagged)] 
+        #[serde(untagged)]
         enum Value {
             Lit(u8),
             Reg(char),
         }
 
         #[derive(Debug, Deserialize, PartialEq)]
-        #[serde(rename_all = "snake_case")] 
+        #[serde(rename_all = "snake_case")]
         enum Instr {
             Add(Value, Value),
             Sub(Value, Value),
@@ -378,12 +386,16 @@ mod tests {
 
         let expected = vec![
             Instr::Load(Value::Reg('a'), Value::Lit(80)),
-            Instr::Load(Value::Reg('b'), Value::Lit(60)), 
-            Instr::Add(Value::Reg('a'), Value::Reg('b')), 
-            Instr::Sub(Value::Reg('a'), Value::Lit(10))
+            Instr::Load(Value::Reg('b'), Value::Lit(60)),
+            Instr::Add(Value::Reg('a'), Value::Reg('b')),
+            Instr::Sub(Value::Reg('a'), Value::Lit(10)),
         ];
 
-        let program: Vec<Instr> = input.trim().lines().filter_map(|l| from_str(l).ok()).collect();
+        let program: Vec<Instr> = input
+            .trim()
+            .lines()
+            .filter_map(|l| from_str(l).ok())
+            .collect();
 
         assert_eq!(program, expected)
     }

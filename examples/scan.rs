@@ -19,6 +19,12 @@ fn main() {
     for l in input.lines() {
         let c: Claim = scan!("#{} @ {},{}: {}x{}" <- l).unwrap();
 
-        println!("claim no. {}. start: ({},{}), area: {}", c.id, c.start.0, c.start.1, c.dim.0 * c.dim.1);
+        println!(
+            "claim no. {}. start: ({},{}), area: {}",
+            c.id,
+            c.start.0,
+            c.start.1,
+            c.dim.0 * c.dim.1
+        );
     }
 }
