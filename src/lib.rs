@@ -166,16 +166,12 @@ where
 #[macro_export]
 macro_rules! scan {
     ($scan_string:tt <- $input:ident) => {{
-        let mut chaff = $scan_string
-            .split("{}")
-            .flat_map(|s| s.chars())
-            .peekable();
+        let mut chaff = $scan_string.split("{}").flat_map(|s| s.chars()).peekable();
 
         $crate::from_closure(
             move |next_ch| {
                 if let Some(&ch) = chaff.peek() {
-                    println!("cmp: {:?} {:?}", ch, next_ch);
-                    if next_ch == ch {
+                    if next_ch == ch || ch.is_whitespace() && next_ch.is_whitespace() {
                         chaff.next();
                         true
                     } else {
@@ -350,7 +346,7 @@ mod tests {
 
         let tests = [
             ("1 fire damage", 1, Damage::Fire),
-            ("2 cold damage", 2, Damage::Cold),
+            ("2\tcold\tdamage", 2, Damage::Cold),
         ];
 
         for &(test, test_n, test_damage) in &tests {
