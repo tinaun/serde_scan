@@ -5,9 +5,6 @@
 //!  * no support for enums with struct variants
 //!  * structs or tuples cannot contain an unbounded container, like a `Vec` or `HashMap`.
 //!
-//! future features:
-//!  * defining custom whitespace characters
-//!  * `scanf` style formatting for more complex inputs
 //!
 //! ## Example
 //!
@@ -213,6 +210,15 @@ mod tests {
     }
 
     #[test]
+    fn strings() {
+        let a: (String, &str) = from_str("a a").unwrap();
+        let b: (String, &[u8]) = from_str("b b").unwrap();
+
+        assert_eq!(a.0.as_str(), a.1);
+        assert_eq!(b.0.as_bytes(), b.1);
+    }
+
+    #[test]
     fn options() {
         let a: Result<u32, ScanError> = from_str("    ");
         let b: Option<u32> = from_str("   ").unwrap();
@@ -298,8 +304,8 @@ mod tests {
         assert_eq!(bytes[0], 0x00);
         assert_eq!(bytes.len(), 4);
 
-        let borrowed: Result<&[u8], _> = from_str("0 1 2 255");
-        assert!(borrowed.is_err());
+        let byte_str: &[u8] = from_str("0x32323").unwrap();
+        assert_eq!(byte_str, b"0x32323");
     }
 
     #[test]

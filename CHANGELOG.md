@@ -1,3 +1,6 @@
+# Version 0.4.1
+ * &[u8] is now interpreted as a bytestring, instead of a (impossible to construct) slice of u8s parsed from the input
+
 # Version 0.4
  * __BREAKING CHANGE:__ the `scan!` macro now strictly matches whitespace - this fixes a bunch of common errors, but could lead to breakage if you matched multiple whitespace characters as one in the past.
 

@@ -206,8 +206,7 @@ where
     where
         V: Visitor<'de>,
     {
-        // borrowed bytestrings not supported
-        self.deserialize_byte_buf(visitor)
+        visitor.visit_borrowed_bytes(self.next()?.as_bytes())
     }
 
     fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>

@@ -1,6 +1,6 @@
 [package]
 name = "serde_scan"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["tinaun <tinagma@gmail.com>"]
 
 description = "easily deserialize values from standard input"
